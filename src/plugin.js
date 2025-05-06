@@ -2,46 +2,45 @@
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
 const OPENAI_MODEL = 'gpt-4';
 // Abrir la interfaz del plugin
-penpot.ui.open("AI Plugin", "", {
+penpot.ui.openUI("AI Plugin", "", {
     width: 285,
     height: 540
 });
 // Configurar el listener para mensajes de Penpot
-window.addEventListener("message", async (event) => {
-    const message = event.data;
+penpot.ui.on("message", async (message) => {
     switch (message.type) {
         case 'init':
             const foundations = localStorage.getItem('foundations');
             const apiKey = localStorage.getItem('openai_api_key');
             if (!foundations) {
-                parent.postMessage({ type: 'requestFoundations' }, '*');
+                penpot.ui.postMessage({ type: 'requestFoundations' });
             }
             else if (!apiKey) {
-                parent.postMessage({ type: 'requestApiKey' }, '*');
+                penpot.ui.postMessage({ type: 'requestApiKey' });
             }
             else {
-                parent.postMessage({ type: 'ready' }, '*');
+                penpot.ui.postMessage({ type: 'ready' });
             }
             break;
         case 'saveFoundations':
             try {
                 const foundations = JSON.parse(message.data);
                 localStorage.setItem('foundations', JSON.stringify(foundations));
-                parent.postMessage({ type: 'foundationsSaved' }, '*');
+                penpot.ui.postMessage({ type: 'foundationsSaved' });
             }
             catch (_a) {
-                parent.postMessage({ type: 'foundationsError' }, '*');
+                penpot.ui.postMessage({ type: 'foundationsError' });
             }
             break;
         case 'saveApiKey':
             localStorage.setItem('openai_api_key', message.data);
-            parent.postMessage({ type: 'apiKeySaved' }, '*');
+            penpot.ui.postMessage({ type: 'apiKeySaved' });
             break;
         case 'generateUI':
             const foundationsData = localStorage.getItem('foundations');
             const apiKeyData = localStorage.getItem('openai_api_key');
             if (!foundationsData || !apiKeyData) {
-                parent.postMessage({ type: 'missingData' }, '*');
+                penpot.ui.postMessage({ type: 'missingData' });
                 break;
             }
             try {
@@ -50,13 +49,13 @@ window.addEventListener("message", async (event) => {
                     text: message.data.text,
                     foundations: JSON.parse(foundationsData)
                 });
-                parent.postMessage({
+                penpot.ui.postMessage({
                     type: 'uiGenerated',
                     data: response
-                }, '*');
+                });
             }
             catch (_b) {
-                parent.postMessage({ type: 'generationError' }, '*');
+                penpot.ui.postMessage({ type: 'generationError' });
             }
             break;
     }
