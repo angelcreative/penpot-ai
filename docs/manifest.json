@@ -1,17 +1,16 @@
 {
-    "name": "AI UI Generator",
-    "description": "Generates UI components in Penpot using OpenAI and design foundations.",
-    "version": "0.1.0",
-    "manifest_version": 1,
-    "code": "dist/plugin.js",
-    "icon": "icon.png",
-    "permissions": [
-      "content:write",
-      "ui:show",
-      "storage:read",
-      "storage:write",
-      "library:read",
-      "network:request"
-    ]
-  }
-  
+  "name": "AI Plugin para Penpot",
+  "description": "Plugin que integra capacidades de IA para mejorar el diseño en Penpot",
+  "code": "plugin.js",
+  "icon": "icon.png",
+  "permissions": [
+    "content:read",
+    "content:write",
+    "library:read",
+    "library:write",
+    "user:read",
+    "comment:read",
+    "comment:write",
+    "allow:downloads"
+  ]
+} 
