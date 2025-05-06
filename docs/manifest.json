@@ -1,7 +1,7 @@
 {
   "name": "AI Plugin para Penpot",
   "description": "Plugin que integra capacidades de IA para mejorar el diseño en Penpot",
-  "code": "plugin.js",
+  "code": "dist/plugin.js",
   "icon": "icon.png",
   "permissions": [
     "content:read",
