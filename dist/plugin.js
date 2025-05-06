@@ -1,19 +1,2 @@
-// src/plugin.ts
-async function main() {
-  try {
-    const foundations = await penpot.storage.getItem("foundations");
-    if (!foundations) {
-      await penpot.ui.showToast("Por favor, configura los foundations primero");
-      return;
-    }
-    const apiKey = await penpot.storage.getItem("openai_api_key");
-    if (!apiKey) {
-      await penpot.ui.showToast("Por favor, configura tu API key de OpenAI");
-      return;
-    }
-    await penpot.ui.showToast("\u{1F389} Plugin listo");
-  } catch (err) {
-    console.error("Error:", err);
-  }
-}
-main().catch(console.error);
+const p="https://api.openai.com/v1/chat/completions",c="gpt-4";penpot.ui.open("AI Plugin","",{width:285,height:540});window.addEventListener("message",async a=>{const e=a.data;switch(e.type){case"init":const n=localStorage.getItem("foundations"),i=localStorage.getItem("openai_api_key");n?i?parent.postMessage({type:"ready"},"*"):parent.postMessage({type:"requestApiKey"},"*"):parent.postMessage({type:"requestFoundations"},"*");break;case"saveFoundations":try{const t=JSON.parse(e.data);localStorage.setItem("foundations",JSON.stringify(t)),parent.postMessage({type:"foundationsSaved"},"*")}catch{parent.postMessage({type:"foundationsError"},"*")}break;case"saveApiKey":localStorage.setItem("openai_api_key",e.data),parent.postMessage({type:"apiKeySaved"},"*");break;case"generateUI":const s=localStorage.getItem("foundations"),o=localStorage.getItem("openai_api_key");if(!s||!o){parent.postMessage({type:"missingData"},"*");break}try{const t=await d({apiKey:o,text:e.data.text,foundations:JSON.parse(s)});parent.postMessage({type:"uiGenerated",data:t},"*")}catch{parent.postMessage({type:"generationError"},"*")}break}});async function d(a){var o,t,r;const e=`Eres un asistente que genera un array JSON de nodos UI usando estos foundations:
+${JSON.stringify(a.foundations)}`,s=(r=(t=(o=(await(await fetch(p,{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${a.apiKey}`},body:JSON.stringify({model:c,messages:[{role:"system",content:e},{role:"user",content:a.text}],temperature:.7})})).json()).choices)==null?void 0:o[0])==null?void 0:t.message)==null?void 0:r.content;if(!s)throw new Error;return JSON.parse(s)}

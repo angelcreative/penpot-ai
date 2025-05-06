@@ -1,90 +1,90 @@
-// src/plugin.ts
-var OPENAI_URL = "https://api.openai.com/v1/chat/completions";
-var OPENAI_MODEL = "gpt-4";
-
-async function main() {
-  try {
-    const foundations = await penpot.storage.getItem("foundations");
-    if (!foundations) return requestFoundationsUpload();
-    const apiKey = await penpot.storage.getItem("openai_api_key");
-    if (!apiKey) return requestApiKeyInput();
-    await penpot.ui.showToast("\u{1F389} Plugin listo. Ingresa un prompt para generar UI.");
-    await requestPromptInput();
-  } catch (err) {
-    console.error("Error en main:", err);
-  }
-}
-async function requestFoundationsUpload() {
-  const html = `<div style="padding:16px;font-family:sans-serif;"><h2>Importa JSON de Foundations</h2><input id="file" type="file" accept="application/json"/><button id="load" disabled>Cargar Foundations</button></div>`;
-  await penpot.ui.showUI({ width: 300, height: 200 }, html);
-  penpot.ui.on("message", async (msg) => {
-    const p = msg.pluginMessage;
-    if (p?.type === "foundations-json") {
-      try {
-        const data = JSON.parse(p.data);
-        await penpot.storage.setItem("foundations", data);
-        await penpot.ui.showToast("\u2705 Foundations importados");
-        penpot.ui.close();
-        main();
-      } catch (e) {
-        console.error(e);
-        await penpot.ui.showToast("\u274C Error al parsear JSON");
-      }
+// Configuración de OpenAI
+const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
+const OPENAI_MODEL = 'gpt-4';
+// Abrir la interfaz del plugin
+penpot.ui.open("AI Plugin", "", {
+    width: 285,
+    height: 540
+});
+// Configurar el listener para mensajes de Penpot
+window.addEventListener("message", async (event) => {
+    const message = event.data;
+    switch (message.type) {
+        case 'init':
+            const foundations = localStorage.getItem('foundations');
+            const apiKey = localStorage.getItem('openai_api_key');
+            if (!foundations) {
+                parent.postMessage({ type: 'requestFoundations' }, '*');
+            }
+            else if (!apiKey) {
+                parent.postMessage({ type: 'requestApiKey' }, '*');
+            }
+            else {
+                parent.postMessage({ type: 'ready' }, '*');
+            }
+            break;
+        case 'saveFoundations':
+            try {
+                const foundations = JSON.parse(message.data);
+                localStorage.setItem('foundations', JSON.stringify(foundations));
+                parent.postMessage({ type: 'foundationsSaved' }, '*');
+            }
+            catch (_a) {
+                parent.postMessage({ type: 'foundationsError' }, '*');
+            }
+            break;
+        case 'saveApiKey':
+            localStorage.setItem('openai_api_key', message.data);
+            parent.postMessage({ type: 'apiKeySaved' }, '*');
+            break;
+        case 'generateUI':
+            const foundationsData = localStorage.getItem('foundations');
+            const apiKeyData = localStorage.getItem('openai_api_key');
+            if (!foundationsData || !apiKeyData) {
+                parent.postMessage({ type: 'missingData' }, '*');
+                break;
+            }
+            try {
+                const response = await generateUI({
+                    apiKey: apiKeyData,
+                    text: message.data.text,
+                    foundations: JSON.parse(foundationsData)
+                });
+                parent.postMessage({
+                    type: 'uiGenerated',
+                    data: response
+                }, '*');
+            }
+            catch (_b) {
+                parent.postMessage({ type: 'generationError' }, '*');
+            }
+            break;
     }
-  });
-  penpot.ui.postMessage({ type: "inject-script", script: `const input=document.getElementById('file'),btn=document.getElementById('load');input.addEventListener('change',()=>btn.disabled=!input.files.length);btn.addEventListener('click',()=>{const r=new FileReader();r.onload=()=>parent.postMessage({pluginMessage:{type:'foundations-json',data:r.result}},'*');r.readAsText(input.files[0]);});` });
-}
-async function requestApiKeyInput() {
-  const html = `<div style="padding:16px;font-family:sans-serif;"><h2>API Key OpenAI</h2><input id="key" type="password" style="width:100%;"/><button id="save" disabled>Guardar</button></div>`;
-  await penpot.ui.showUI({ width: 300, height: 180 }, html);
-  penpot.ui.on("message", async (msg) => {
-    const p = msg.pluginMessage;
-    if (p?.type === "api-key") {
-      await penpot.storage.setItem("openai_api_key", p.data);
-      await penpot.ui.showToast("\u{1F511} API Key guardada");
-      penpot.ui.close();
-      main();
+});
+// Función para generar UI
+async function generateUI(params) {
+    var _a, _b, _c;
+    const systemMessage = `Eres un asistente que genera un array JSON de nodos UI usando estos foundations:\n${JSON.stringify(params.foundations)}`;
+    const response = await fetch(OPENAI_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${params.apiKey}`
+        },
+        body: JSON.stringify({
+            model: OPENAI_MODEL,
+            messages: [
+                { role: 'system', content: systemMessage },
+                { role: 'user', content: params.text }
+            ],
+            temperature: 0.7
+        })
+    });
+    const data = await response.json();
+    const content = (_c = (_b = (_a = data.choices) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.message) === null || _c === void 0 ? void 0 : _c.content;
+    if (!content) {
+        throw new Error();
     }
-  });
-  penpot.ui.postMessage({ type: "inject-script", script: `const i=document.getElementById('key'),b=document.getElementById('save');i.addEventListener('input',()=>b.disabled=!i.value.trim());b.addEventListener('click',()=>parent.postMessage({pluginMessage:{type:'api-key',data:i.value.trim()}},'*'));` });
+    return JSON.parse(content);
 }
-async function requestPromptInput() {
-  const html = `<div style="padding:16px;font-family:sans-serif;"><h2>Describe el componente UI</h2><textarea id="prompt" rows="4" style="width:100%;font-size:14px;"></textarea><button id="go" disabled>Generar</button></div>`;
-  await penpot.ui.showUI({ width: 350, height: 260 }, html);
-  penpot.ui.on("message", async (msg) => {
-    const p = msg.pluginMessage;
-    if (p?.type === "user-prompt") {
-      penpot.ui.close();
-      await generateUI(p.data);
-    }
-  });
-  penpot.ui.postMessage({ type: "inject-script", script: `const i=document.getElementById('prompt'),b=document.getElementById('go');i.addEventListener('input',()=>b.disabled=!i.value.trim());b.addEventListener('click',()=>parent.postMessage({pluginMessage:{type:'user-prompt',data:i.value.trim()}},'*'));` });
-}
-async function generateUI(prompt) {
-  try {
-    const foundations = await penpot.storage.getItem("foundations");
-    const apiKey = await penpot.storage.getItem("openai_api_key");
-    const sys = `Eres un asistente que genera nodos usando estos foundations:
-${JSON.stringify(foundations)}`;
-    const res = await fetch(OPENAI_URL, { method: "POST", headers: { "Content-Type": "application/json", "Authorization": `Bearer ${apiKey}` }, body: JSON.stringify({ model: OPENAI_MODEL, messages: [{ role: "system", content: sys }, { role: "user", content: prompt }], temperature: 0.7 }) });
-    const data = await res.json();
-    const content = data.choices?.[0]?.message?.content;
-    if (!content) throw Error("Sin contenido");
-    const ui = JSON.parse(content);
-    await placeNodes(ui.nodes);
-  } catch (e) {
-    console.error(e);
-    await penpot.ui.showToast("\u274C Error generando UI");
-  }
-}
-async function placeNodes(nodes) {
-  for (const n of nodes) {
-    try {
-      if (n.type === "RECTANGLE") await penpot.content.createRectangle({ position: n.position, size: n.size, style: n.style });
-      else if (n.type === "TEXT") await penpot.content.createText({ position: n.position, text: n.content || "", style: n.style });
-    } catch (e) {
-      console.error("Node error", n, e);
-    }
-  }
-}
-main().catch((e) => console.error("main final", e));
+export {};
