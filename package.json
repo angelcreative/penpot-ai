@@ -4,7 +4,7 @@
   "description": "Plugin de IA para Penpot",
   "scripts": {
     "dev": "vite build --watch & vite preview",
-    "build": "tsc && vite build && mkdir -p docs/dist && cp dist/plugin.js docs/dist/",
+    "build": "tsc && vite build && mkdir -p docs/dist && cp dist/plugin.js docs/dist/plugin.js",
     "preview": "vite preview"
   },
   "keywords": [],
